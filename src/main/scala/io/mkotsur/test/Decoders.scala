@@ -2,12 +2,12 @@ package io.mkotsur.test
 import cats.data.EitherT
 import cats.effect.IO
 import cats.implicits._
-import cats.{Applicative, Monad, Traverse}
+import cats.{ Applicative, Monad, Traverse }
 import io.circe.generic.auto._
-import io.mkotsur.test.App.{Contributor, RepoInfo}
+import io.mkotsur.test.App.{ Contributor, RepoInfo }
 import org.http4s.circe.jsonOf
 import org.http4s.headers.Link
-import org.http4s.{DecodeFailure, DecodeResult, EntityDecoder, HttpVersion, MediaRange, Message, Response, _}
+import org.http4s.{ DecodeFailure, DecodeResult, EntityDecoder, HttpVersion, MediaRange, Message, Response, _ }
 object Decoders {
 
   object implicits {
@@ -35,7 +35,7 @@ object Decoders {
                   override def toHttpResponse[F[_]](
                     httpVersion: HttpVersion
                   )(implicit F: Applicative[F]): F[Response[F]] = ???
-              }
+                }
             )
 
           for {
