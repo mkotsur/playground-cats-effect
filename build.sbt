@@ -22,6 +22,8 @@ libraryDependencies += "org.http4s" %% "http4s-blaze-client" % Http4sVersion
 libraryDependencies += "io.circe" %% "circe-generic" % CirceVersion
 libraryDependencies += "io.circe" %% "circe-optics"  % CirceVersion
 
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.8.0-beta4"
+
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6")
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 
