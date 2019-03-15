@@ -1,10 +1,9 @@
 package io.mkotsur.test
 
+import cats.Semigroup
 import cats.effect._
-import cats.implicits._
 import io.circe.generic.auto._
-import org.http4s._
-
+import org.http4s.{ EntityDecoder, _ }
 import org.http4s.client.Client
 import org.http4s.client.blaze._
 import org.http4s.client.dsl.io._
@@ -17,30 +16,25 @@ import scala.io.StdIn
 object App extends IOApp {
 
   import Decoders.implicits._
+  import Output.implicits._
+  import cats.implicits._
 
   private def readGithubToken(envKey: String) = Option(System.getenv(envKey)) match {
     case None    => IO.raiseError(new RuntimeException(s"Please set $envKey env variable"))
     case Some(t) => IO.pure(Credentials.Token(CaseInsensitiveString("token"), t))
   }
-
-  private def getContributors(uri: Uri, token: Credentials.Token)(implicit client: Client[IO]): IO[List[Contributor]] =
-    client.expect[(List[Contributor], Option[Uri])](Method.GET(uri, Authorization(token))).flatMap {
-      case (contributors, None) => IO.pure(contributors)
-      case (contributors, Some(nextPageUri)) =>
-        getContributors(nextPageUri, token).map { contribsNext =>
-          contribsNext ::: contributors
-        }
-    }
-
   private def getRepoInfosUri(username: String) = IO(Uri.uri("https://api.github.com/users/") / username / "repos")
 
-  private def getRepoInfos(uri: Uri, token: Credentials.Token)(implicit client: Client[IO]): IO[List[RepoInfo]] = {
+  private def getAllPages[A: Semigroup](
+    uri: Uri,
+    token: Credentials.Token
+  )(implicit decoder: EntityDecoder[IO, (A, Option[Uri])], client: Client[IO]): IO[A] = {
     val req = Method.GET(uri, Authorization(token))
-    client.expect[(List[RepoInfo], Option[Uri])](req).flatMap {
-      case (repoInfos, None) => IO.pure(repoInfos)
-      case (repoInfos, Some(nextPageUri)) =>
-        getRepoInfos(nextPageUri, token).map { next =>
-          next ::: repoInfos
+    client.expect[(A, Option[Uri])](req).flatMap {
+      case (items, None) => IO.pure(items)
+      case (items, Some(nextPageUri)) =>
+        getAllPages[A](nextPageUri, token).map { newItems =>
+          newItems |+| items
         }
     }
   }
@@ -51,13 +45,12 @@ object App extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     BlazeClientBuilder[IO](global).resource.use { implicit client =>
-      import Output.implicits._
       for {
         token        <- readGithubToken("GH_TOKEN")
         _            <- IO(println("Please enter your Github ID ?"))
         username     <- IO(StdIn.readLine())
         repoInfosUri <- getRepoInfosUri(username)
-        repoInfos    <- getRepoInfos(repoInfosUri, token)
+        repoInfos    <- getAllPages[List[RepoInfo]](repoInfosUri, token)
         _            <- IO(println(s"Found ${repoInfos.length} repos"))
         contributorsPerRepo <- repoInfos
                                 .filterNot(_.fork)
@@ -65,7 +58,7 @@ object App extends IOApp {
                                   case RepoInfo(repoName, contributionsUrl, _) =>
                                     for {
                                       uri          <- IO.fromEither(Uri.fromString(contributionsUrl))
-                                      contributors <- getContributors(uri, token)
+                                      contributors <- getAllPages[List[Contributor]](uri, token)
                                     } yield {
                                       val orderedContributors = contributors
                                         .filterNot(_.login === username)
