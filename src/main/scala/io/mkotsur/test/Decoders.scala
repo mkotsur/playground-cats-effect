@@ -8,6 +8,7 @@ import io.mkotsur.test.App.{ Contributor, RepoInfo }
 import org.http4s.circe.jsonOf
 import org.http4s.headers.Link
 import org.http4s.{ DecodeFailure, DecodeResult, EntityDecoder, HttpVersion, MediaRange, Message, Response, _ }
+
 object Decoders {
 
   object implicits {
@@ -18,6 +19,13 @@ object Decoders {
   }
 
   object paginated {
+
+    /**
+     * Returns a special entity decoder, which decodes and returns not only the JSON body,
+     * but also the next page from the `Link` headers.
+     * @tparam F wrapper type.
+     * @tparam E the type you want the body to be decoded into.
+     */
     def apply[F[_]: Monad, E](implicit bodyDecoder: EntityDecoder[F, E]): EntityDecoder[F, (E, Option[Uri])] =
       new EntityDecoder[F, (E, Option[Uri])] {
 
@@ -35,7 +43,7 @@ object Decoders {
                   override def toHttpResponse[F[_]](
                     httpVersion: HttpVersion
                   )(implicit F: Applicative[F]): F[Response[F]] = ???
-                }
+              }
             )
 
           for {
@@ -50,5 +58,4 @@ object Decoders {
         override def consumes: Set[MediaRange] = bodyDecoder.consumes
       }
   }
-
 }
