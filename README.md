@@ -1,10 +1,8 @@
-# Github contributions with cats-effect
+# Github contributions ⌨ with cats-effect
 
 This project is a playground for learning FP and particularly `cats-effect` library. The code solves the problem 👇
 
 ## Original task
-
-A new Amsterdam-based team has decided to address a problem #1 all developers in the world have: keeping CV up-to-date. As a startup with lean mentality they decided to start small and in the first version support retrieving relevant information from GitHub and displaying it in the terminal.
 
 The program should:
 * Take username, as a command line argument.
